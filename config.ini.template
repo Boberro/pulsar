@@ -1,0 +1,14 @@
+[main]
+refresh_time = 5
+url_list_path = config.csv
+
+[output logger]
+log_to_file = true
+log_to_console = true
+path = pulsar.log
+
+[status logger]
+log_to_file = true
+log_to_console = true
+path = pulsar_status.log
+level = debug

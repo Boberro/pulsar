@@ -4,5 +4,6 @@
 
 config.csv
 config.ini
+*.log
 
 *.pyc
