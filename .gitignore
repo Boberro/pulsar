@@ -1,0 +1,8 @@
+.venv/
+.idea/
+*.egg-info/
+
+config.csv
+config.ini
+
+*.pyc
