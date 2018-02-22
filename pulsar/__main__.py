@@ -4,6 +4,7 @@ import ConfigParser
 import csv
 import logging
 from pulsar import Pulsar
+from time import sleep
 
 logger = logging.getLogger('pulsar')
 logger_output = logging.getLogger('pulsar_output')
@@ -83,13 +84,24 @@ if __name__ == '__main__':
         )
 
         try:
+            refresh_time = float(refresh_time)
+        except ValueError as e:
+            logger.error('Incorrect refresh time value in configuration file. Defaulting to 5')
+            refresh_time = 5
+
+        try:
             with open(url_list_path, 'rb') as url_list_file:
                 url_list_reader = csv.reader(url_list_file, delimiter=';', quotechar="\"")
                 url_list = [row for row in url_list_reader]
         except IOError as e:
-            logger.warning('Error: Could not find url definition file {}'.format(url_list_path))
+            logger.error('Could not find url definition file {}'.format(url_list_path))
         else:
             pulsar = Pulsar(refresh_time, url_list)
             pulsar.start()
 
-    logger.info("Pulsar closed.")
+            try:
+                while True:
+                    sleep(1)
+
+            except (KeyboardInterrupt, SystemExit):
+                pulsar.stop()
