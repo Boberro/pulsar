@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 
 requires = [
-    'requests',
+    'requests==2.18.4',
+    'Twisted==17.9.0',
 ]
 
 setup(

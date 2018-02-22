@@ -4,18 +4,25 @@ from requests.exceptions import ConnectionError
 import time
 import logging
 import threading
+from pulsar_web_interface import PulsarWebInterfaceHandler
+from BaseHTTPServer import HTTPServer
 
 logger = logging.getLogger('pulsar')
 logger_output = logging.getLogger('pulsar_output')
 
 
 class Pulsar(object):
-    def __init__(self, refresh_time, url_list):
+    def __init__(self, refresh_time, url_list, web_interface_address, web_interface_port):
         self.refresh_time = refresh_time
         self.url_list = url_list
 
-        self.pulsar_thread_stop_trigger = None
         self.pulsar_thread = None
+        self.pulsar_thread_stop_trigger = None
+
+        self.pulsar_web_interface_thread = None
+        self.web_interface_server = None
+        self.web_interface_address = web_interface_address
+        self.web_interface_port = web_interface_port
 
     def _pulsar_thread_method(self):
         while not self.pulsar_thread_stop_trigger.is_set():
@@ -55,5 +62,23 @@ class Pulsar(object):
             logger.warning('Pulsar is already running, can\'t start again')
 
     def stop(self):
-        logger.info('Pulsar stopping...')
-        self.pulsar_thread_stop_trigger.set()
+        if self.pulsar_thread is not None:
+            logger.info('Pulsar stopping...')
+            self.pulsar_thread_stop_trigger.set()
+
+    def start_web_interface(self):
+        if self.pulsar_web_interface_thread is None:
+            logger.info('Creating web interface')
+            self.web_interface_server = HTTPServer(
+                (self.web_interface_address, self.web_interface_port),
+                PulsarWebInterfaceHandler
+            )
+            self.pulsar_web_interface_thread = threading.Thread(target=self.web_interface_server.serve_forever)
+            self.pulsar_web_interface_thread.daemon = True
+            logger.info('Starting web interface')
+            self.pulsar_web_interface_thread.start()
+
+    def stop_web_interface(self):
+        if self.pulsar_web_interface_thread is not None:
+            logger.info('Web interface stopping...')
+            self.web_interface_server.shutdown()
