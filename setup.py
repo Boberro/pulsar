@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 requires = [
     'requests==2.18.4',
-    'Twisted==17.9.0',
+    'Jinja2==2.10',
 ]
 
 setup(

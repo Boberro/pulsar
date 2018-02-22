@@ -4,8 +4,7 @@ from requests.exceptions import ConnectionError
 import time
 import logging
 import threading
-from pulsar_web_interface import PulsarWebInterfaceHandler
-from BaseHTTPServer import HTTPServer
+from pulsar_web_interface import PulsarWebInterfaceServer
 
 logger = logging.getLogger('pulsar')
 logger_output = logging.getLogger('pulsar_output')
@@ -24,6 +23,8 @@ class Pulsar(object):
         self.web_interface_address = web_interface_address
         self.web_interface_port = web_interface_port
 
+        self.latest_stats = {k: {'status': '', 'message': ''} for k in [e[0] for e in url_list]}
+
     def _pulsar_thread_method(self):
         while not self.pulsar_thread_stop_trigger.is_set():
             logger.debug('Checking websites...')
@@ -35,6 +36,10 @@ class Pulsar(object):
                     t2 = time.time()
                 except ConnectionError as e:
                     logger_output.warning('{}: connection error'.format(url))
+                    self.latest_stats[url] = {
+                        'status': 'Problem',
+                        'message': 'Could not connect',
+                    }
                     continue
 
                 total_time = t2 - t1
@@ -43,9 +48,17 @@ class Pulsar(object):
                 if text_found:
                     logger_output.info('{}: {} {}, text found, total time: {}s'.format(
                         url, r.status_code, r.reason, total_time))
+                    self.latest_stats[url] = {
+                        'status': 'OK',
+                        'message': 'total time: {}'.format(total_time),
+                    }
                 else:
                     logger_output.warning('{}: {} {}, text not found, total time: {}s'.format(
                         url, r.status_code, r.reason, total_time))
+                    self.latest_stats[url] = {
+                        'status': 'Problem',
+                        'message': 'Text not found. Total time: {}'.format(total_time),
+                    }
 
             logger.debug('Sleeping...')
             time.sleep(self.refresh_time)
@@ -58,8 +71,6 @@ class Pulsar(object):
                 target=self._pulsar_thread_method, args=()
             )
             self.pulsar_thread.start()
-        else:
-            logger.warning('Pulsar is already running, can\'t start again')
 
     def stop(self):
         if self.pulsar_thread is not None:
@@ -69,16 +80,10 @@ class Pulsar(object):
     def start_web_interface(self):
         if self.pulsar_web_interface_thread is None:
             logger.info('Creating web interface')
-            self.web_interface_server = HTTPServer(
-                (self.web_interface_address, self.web_interface_port),
-                PulsarWebInterfaceHandler
-            )
+            self.web_interface_server = PulsarWebInterfaceServer(
+                self.web_interface_address, self.web_interface_port, self)
             self.pulsar_web_interface_thread = threading.Thread(target=self.web_interface_server.serve_forever)
             self.pulsar_web_interface_thread.daemon = True
-            logger.info('Starting web interface')
-            self.pulsar_web_interface_thread.start()
-
-    def stop_web_interface(self):
-        if self.pulsar_web_interface_thread is not None:
-            logger.info('Web interface stopping...')
-            self.web_interface_server.shutdown()
+            if self.web_interface_server.template is not None:
+                logger.info('Starting web interface')
+                self.pulsar_web_interface_thread.start()

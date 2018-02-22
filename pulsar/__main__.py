@@ -137,4 +137,3 @@ if __name__ == '__main__':
             sleep(1)
     except (KeyboardInterrupt, SystemExit):
         pulsar.stop()
-        pulsar.stop_web_interface()
