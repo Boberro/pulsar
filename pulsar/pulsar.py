@@ -85,5 +85,8 @@ class Pulsar(object):
             self.pulsar_web_interface_thread = threading.Thread(target=self.web_interface_server.serve_forever)
             self.pulsar_web_interface_thread.daemon = True
             if self.web_interface_server.template is not None:
-                logger.info('Starting web interface')
+                _msg = 'Starting web interface at http://{}:{}'.format(
+                    self.web_interface_address, self.web_interface_port)
+                logger.info(_msg)
+                print _msg
                 self.pulsar_web_interface_thread.start()

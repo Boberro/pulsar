@@ -2,7 +2,6 @@ from BaseHTTPServer import BaseHTTPRequestHandler
 from BaseHTTPServer import HTTPServer
 from jinja2 import Template
 import logging
-import sys
 
 logger = logging.getLogger('pulsar')
 
@@ -31,12 +30,13 @@ class PulsarWebInterfaceHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        """Respond to a GET request."""
+        stats = sorted(self.server.parent.latest_stats.items())
+
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         self.wfile.write(
             self.server.template.render(
                 refresh_time=self.server.parent.refresh_time,
-                stats=self.server.parent.latest_stats)
+                stats=stats)
         )
